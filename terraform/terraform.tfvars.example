@@ -1,0 +1,67 @@
+# terraform.tfvars.example
+#
+# Copy this file to terraform.tfvars and fill in your actual values.
+# NEVER commit terraform.tfvars to version control — add it to .gitignore.
+#
+# cp terraform.tfvars.example terraform.tfvars
+# vim terraform.tfvars
+# terraform plan
+
+# ---------------------------------------------------------------------------
+# Required — no defaults
+# ---------------------------------------------------------------------------
+
+# Your GCP project ID (not the project name or number)
+project_id = "your-gcp-project-id"
+
+# GCP zone within the region — must match the region below
+zone = "us-central1-a"
+
+# Fully-qualified domain name for the application
+# Google-managed SSL cert will be issued for this domain
+domain_name = "openclaw.yourdomain.com"
+
+# Email address for budget alerts and monitoring notifications
+notification_email = "devops@yourdomain.com"
+
+# ---------------------------------------------------------------------------
+# Optional — defaults provided in variables.tf
+# ---------------------------------------------------------------------------
+
+# GCP region for regional resources (VPC, Cloud NAT, etc.)
+# Default: us-central1
+# region = "us-central1"
+
+# GCE machine type — e2-standard-2 (2 vCPU, 8 GB RAM) is the default
+# For production with heavy LLM traffic, consider e2-standard-4
+# instance_type = "e2-standard-2"
+
+# Claude API provider:
+#   "anthropic_api" — uses Anthropic direct API (add key to Secret Manager after apply)
+#   "vertex_ai"     — uses Vertex AI (also creates a vertex-ai service account)
+# Default: anthropic_api
+# claude_provider = "anthropic_api"
+
+# Deployment environment label — applied to all GCP resources
+# Allowed values: production, staging, development
+# Default: production
+# environment = "production"
+
+# Monthly budget alert threshold in USD
+# Default: 100
+# budget_amount = 100
+
+# CIDR ranges allowed for direct SSH to the instance.
+# Leave empty ([]) to use IAP tunneling only (recommended).
+# Example for specific office IP: ["203.0.113.42/32"]
+# ssh_source_ranges = []
+
+# Cloud DNS integration
+# Set to true only if you have a Cloud DNS managed zone in this project
+# and want Terraform to manage the A record automatically.
+# Default: false
+# enable_dns = false
+
+# Name of the existing Cloud DNS managed zone (required when enable_dns = true)
+# Find it with: gcloud dns managed-zones list --project=YOUR_PROJECT_ID
+# dns_zone_name = "your-dns-zone-name"
