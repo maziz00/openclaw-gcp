@@ -145,8 +145,8 @@ gcloud services enable \
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/maziz00/openclaw-gcp-deployment.git
-cd openclaw-gcp-deployment
+git clone https://github.com/maziz00/openclaw-gcp.git
+cd openclaw-gcp
 ```
 
 **2. Configure your deployment**
@@ -252,20 +252,12 @@ For setup details and dashboard configuration, see [docs/cost-monitoring.md](doc
 
 ## Author
 
-**Mohamed AbdelAziz** -- Senior DevOps Engineer | 12 Years | CKA, CKAD, AWS Solutions Architect
+**Mohamed AbdelAziz** -- Senior DevOps Engineer | 12 Years | Kubernetes GCP AWS
 
 - [GitHub](https://github.com/maziz00)
 - [LinkedIn](https://www.linkedin.com/in/maziz00/)
 - [Medium](https://medium.com/@maziz00)
 - [Upwork](https://www.upwork.com/freelancers/maziz00)
-
----
-
-## The DevOps Dispatch Newsletter
-
-I write a weekly newsletter covering production-grade DevOps, Kubernetes war stories, and cloud cost optimization -- with a focus on MENA enterprise environments. If you found this project useful, you will find the newsletter valuable.
-
-**Subscribe:** [The DevOps Dispatch on Beehiiv](https://devopsdispatch.beehiiv.com)
 
 ---
 
