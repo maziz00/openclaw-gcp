@@ -1,0 +1,117 @@
+---
+# --- Node Exporter ---
+
+- name: Create node_exporter system group
+  ansible.builtin.group:
+    name: node_exporter
+    system: true
+    state: present
+
+- name: Create node_exporter system user
+  ansible.builtin.user:
+    name: node_exporter
+    group: node_exporter
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+
+- name: Download node_exporter binary
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    dest: /tmp/node_exporter.tar.gz
+    mode: "0644"
+
+- name: Extract node_exporter binary
+  ansible.builtin.unarchive:
+    src: /tmp/node_exporter.tar.gz
+    dest: /tmp
+    remote_src: true
+
+- name: Install node_exporter binary
+  ansible.builtin.copy:
+    src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: /usr/local/bin/node_exporter
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: true
+  notify: restart node_exporter
+
+- name: Create node_exporter systemd service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Prometheus Node Exporter
+      After=network.target
+
+      [Service]
+      Type=simple
+      User=node_exporter
+      Group=node_exporter
+      ExecStart=/usr/local/bin/node_exporter --web.listen-address=:{{ node_exporter_port }}
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: restart node_exporter
+
+- name: Start and enable node_exporter
+  ansible.builtin.systemd:
+    name: node_exporter
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# --- Cost Tracker ---
+
+- name: Install Python dependencies for cost tracker
+  ansible.builtin.pip:
+    name:
+      - google-cloud-monitoring
+      - anthropic
+    executable: pip3
+
+- name: Template cost-tracker script
+  ansible.builtin.template:
+    src: cost-tracker.py.j2
+    dest: /opt/openclaw/cost-tracker.py
+    owner: root
+    group: root
+    mode: "0755"
+  notify: restart cost-tracker
+
+- name: Template cost-tracker systemd service
+  ansible.builtin.template:
+    src: cost-tracker.service.j2
+    dest: /etc/systemd/system/openclaw-cost-tracker.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart cost-tracker
+
+- name: Start and enable cost-tracker service
+  ansible.builtin.systemd:
+    name: openclaw-cost-tracker
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# --- Firewall for monitoring ---
+
+- name: Add node_exporter port to firewalld
+  ansible.posix.firewalld:
+    port: "{{ node_exporter_port }}/tcp"
+    permanent: true
+    state: enabled
+    zone: public
+  notify: reload firewalld
+
+- name: Reload firewalld for monitoring rules
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  changed_when: false

@@ -1,0 +1,36 @@
+server {
+    listen {{ nginx_port }};
+    server_name {{ domain_name }};
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'" always;
+
+    # Logging
+    access_log /var/log/nginx/openclaw_access.log;
+    error_log /var/log/nginx/openclaw_error.log;
+
+    # Health check endpoint for load balancer
+    location /health {
+        access_log off;
+        return 200 'healthy';
+        add_header Content-Type text/plain;
+    }
+
+    # Proxy to OpenClaw application
+    location / {
+        proxy_pass http://127.0.0.1:{{ openclaw_port }};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+    }
+}

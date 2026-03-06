@@ -1,0 +1,81 @@
+---
+- name: Ensure SELinux is {{ selinux_state }}
+  ansible.posix.selinux:
+    state: "{{ selinux_state }}"
+    policy: "{{ selinux_policy }}"
+
+- name: Set SELinux boolean for Docker container management
+  ansible.posix.seboolean:
+    name: container_manage_cgroup
+    state: true
+    persistent: true
+
+- name: Install security packages
+  ansible.builtin.dnf:
+    name:
+      - audit
+      - aide
+      - chrony
+      - policycoreutils-python-utils
+      - firewalld
+    state: present
+
+- name: Apply sysctl hardening parameters
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: present
+    reload: true
+  loop: "{{ sysctl_params | dict2items }}"
+
+- name: Ensure firewalld is started and enabled
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Add allowed services to firewalld
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    zone: public
+  loop: "{{ firewalld_services }}"
+  notify: restart firewalld
+
+- name: Set firewalld default zone to drop
+  ansible.builtin.command:
+    cmd: firewall-cmd --set-default-zone=drop
+  register: firewalld_zone
+  changed_when: "'ZONE_ALREADY_SET' not in firewalld_zone.stderr"
+  notify: restart firewalld
+
+- name: Disable unnecessary services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop: "{{ disabled_services }}"
+  failed_when: false
+
+- name: Apply SSH hardening configuration
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?{{ item.key }}"
+    line: "{{ item.key }} {{ item.value }}"
+    validate: "sshd -t -f %s"
+  loop: "{{ ssh_config | dict2items }}"
+  notify: restart sshd
+
+- name: Enable and start auditd
+  ansible.builtin.systemd:
+    name: auditd
+    state: started
+    enabled: true
+
+- name: Enable and start chronyd
+  ansible.builtin.systemd:
+    name: chronyd
+    state: started
+    enabled: true

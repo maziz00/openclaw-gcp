@@ -1,0 +1,27 @@
+---
+- name: Deploy OpenClaw on AlmaLinux 9
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Verify AlmaLinux 9
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "AlmaLinux"
+          - ansible_distribution_major_version == "9"
+        fail_msg: "This playbook requires AlmaLinux 9. Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Update all packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: true
+
+  roles:
+    - base-hardening
+    - docker
+    - secrets
+    - openclaw
+    - nginx
+    - monitoring

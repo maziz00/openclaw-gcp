@@ -1,0 +1,23 @@
+---
+docker_edition: "ce"
+docker_compose_version: "v2.24.0"
+
+docker_daemon_config:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "10m"
+    max-file: "3"
+  storage-driver: "overlay2"
+  selinux-enabled: true
+
+docker_old_packages:
+  - podman
+  - buildah
+  - docker
+  - docker-client
+  - docker-client-latest
+  - docker-common
+  - docker-latest
+  - docker-latest-logrotate
+  - docker-logrotate
+  - docker-engine

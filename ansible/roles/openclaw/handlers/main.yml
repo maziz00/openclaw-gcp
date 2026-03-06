@@ -1,0 +1,5 @@
+---
+- name: restart openclaw
+  ansible.builtin.command:
+    cmd: docker compose restart
+    chdir: "{{ openclaw_config_dir }}"

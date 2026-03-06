@@ -1,0 +1,62 @@
+---
+- name: Remove old Docker/container packages
+  ansible.builtin.dnf:
+    name: "{{ docker_old_packages }}"
+    state: absent
+
+- name: Add Docker CE repository
+  ansible.builtin.command:
+    cmd: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+    creates: /etc/yum.repos.d/docker-ce.repo
+
+- name: Install Docker CE and dependencies
+  ansible.builtin.dnf:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
+
+- name: Ensure docker group exists
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: Add ansible user to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+
+- name: Create Docker configuration directory
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+- name: Configure Docker daemon
+  ansible.builtin.copy:
+    content: "{{ docker_daemon_config | to_nice_json }}\n"
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+  notify: restart docker
+
+- name: Start and enable Docker service
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Set SELinux context for Docker socket
+  ansible.builtin.command:
+    cmd: chcon -t container_runtime_exec_t /usr/bin/dockerd
+  changed_when: false
+  failed_when: false
+
+- name: Verify Docker is running
+  ansible.builtin.command:
+    cmd: docker info
+  register: docker_info
+  changed_when: false

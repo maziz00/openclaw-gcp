@@ -1,0 +1,54 @@
+---
+- name: Create OpenClaw directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ openclaw_data_dir }}"
+    - "{{ openclaw_config_dir }}"
+
+- name: Template docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ openclaw_config_dir }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart openclaw
+
+- name: Template OpenClaw environment file
+  ansible.builtin.template:
+    src: openclaw-env.j2
+    dest: "{{ openclaw_config_dir }}/openclaw.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: restart openclaw
+
+- name: Pull OpenClaw Docker image
+  community.docker.docker_image:
+    name: "{{ openclaw_image }}"
+    tag: "{{ openclaw_version }}"
+    source: pull
+    force_source: true
+
+- name: Start OpenClaw with Docker Compose
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ openclaw_config_dir }}"
+  register: compose_up
+  changed_when: "'Started' in compose_up.stdout or 'Creating' in compose_up.stderr"
+
+- name: Wait for OpenClaw health check
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ openclaw_port }}/health"
+    method: GET
+    status_code: 200
+  register: health_check
+  until: health_check.status == 200
+  retries: 12
+  delay: 10

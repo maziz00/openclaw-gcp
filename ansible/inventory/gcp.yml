@@ -1,0 +1,18 @@
+---
+plugin: google.cloud.gcp_compute
+projects:
+  - "{{ lookup('ansible.builtin.env', 'GCP_PROJECT_ID') }}"
+auth_kind: application
+filters:
+  - labels.app = openclaw
+  - labels.environment = production
+  - status = RUNNING
+keyed_groups:
+  - key: zone
+    prefix: zone
+  - key: labels.role
+    prefix: role
+hostnames:
+  - public_ip
+compose:
+  ansible_host: networkInterfaces[0].accessConfigs[0].natIP

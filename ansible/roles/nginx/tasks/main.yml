@@ -1,0 +1,46 @@
+---
+- name: Install Nginx
+  ansible.builtin.dnf:
+    name: nginx
+    state: present
+
+- name: Set SELinux boolean for Nginx reverse proxy
+  ansible.posix.seboolean:
+    name: httpd_can_network_connect
+    state: true
+    persistent: true
+
+- name: Remove default Nginx configuration
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+  notify: reload nginx
+
+- name: Template OpenClaw Nginx configuration
+  ansible.builtin.template:
+    src: openclaw.conf.j2
+    dest: /etc/nginx/conf.d/openclaw.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: "nginx -t -c /dev/stdin < %s || nginx -t"
+  notify: reload nginx
+
+- name: Start and enable Nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Add HTTP service to firewalld
+  ansible.posix.firewalld:
+    service: http
+    permanent: true
+    state: enabled
+    zone: public
+  notify: reload firewalld
+
+- name: Reload firewalld for Nginx rule
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  changed_when: false

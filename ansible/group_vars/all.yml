@@ -1,0 +1,19 @@
+---
+# Claude / AI Provider Configuration
+# Options: "anthropic_api" or "vertex_ai"
+claude_provider: "anthropic_api"
+
+# OpenClaw Application
+openclaw_version: "latest"
+openclaw_port: 3000
+
+# Nginx
+nginx_port: 80
+domain_name: "openclaw.example.com"
+
+# GCP
+gcp_project_id: "your-gcp-project-id"
+
+# Monitoring
+node_exporter_version: "1.7.0"
+cost_tracker_interval: 300

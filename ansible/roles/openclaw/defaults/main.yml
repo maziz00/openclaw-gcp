@@ -1,0 +1,4 @@
+---
+openclaw_image: "ghcr.io/openclaw/openclaw"
+openclaw_data_dir: "/opt/openclaw/data"
+openclaw_config_dir: "/opt/openclaw/config"

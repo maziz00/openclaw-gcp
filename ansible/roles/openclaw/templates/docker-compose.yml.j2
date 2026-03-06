@@ -1,0 +1,27 @@
+---
+version: "3.8"
+
+services:
+  openclaw:
+    image: {{ openclaw_image }}:{{ openclaw_version }}
+    container_name: openclaw
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ openclaw_port }}:3000"
+    env_file:
+      - {{ openclaw_config_dir }}/openclaw.env
+    volumes:
+      - {{ openclaw_data_dir }}:/app/data
+    security_opt:
+      - label:type:container_runtime_t
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

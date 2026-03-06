@@ -1,0 +1,19 @@
+# OpenClaw Environment Configuration
+# Managed by Ansible - do not edit manually
+
+# Claude Provider: {{ claude_provider }}
+CLAUDE_PROVIDER={{ claude_provider }}
+
+# Anthropic API Key (read from secrets at deploy time)
+ANTHROPIC_API_KEY={{ lookup('ansible.builtin.file', secrets_dir + '/anthropic_api_key') }}
+
+{% if claude_provider == "vertex_ai" %}
+# Vertex AI Configuration
+VERTEX_AI_PROJECT={{ gcp_project_id }}
+VERTEX_AI_LOCATION=us-central1
+GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/vertex_ai_credentials.json
+{% endif %}
+
+# Application Settings
+NODE_ENV=production
+PORT=3000
