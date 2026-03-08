@@ -79,6 +79,7 @@ openclaw-gcp/
 |-- README.md
 |-- LICENSE
 |-- scripts/
+|   |-- setup-tf-backend.sh   # One-time: creates GCS bucket for remote state
 |   `-- deploy.sh              # Single command: Terraform + Ansible end to end
 |-- terraform/
 |   |-- versions.tf            # Provider versions and constraints
@@ -160,7 +161,16 @@ claude_provider    = "anthropic_api"   # or "vertex_ai"
 budget_amount      = 100
 ```
 
-**3. Deploy**
+**3. Set up Terraform remote state (one-time)**
+
+```bash
+chmod +x scripts/setup-tf-backend.sh
+cd scripts && ./setup-tf-backend.sh
+```
+
+This creates a GCS bucket (`<project-id>-openclaw-tfstate`) with versioning and uniform access. The bucket name is already configured in `terraform/backend.tf`.
+
+**4. Deploy**
 
 ```bash
 chmod +x scripts/deploy.sh
@@ -169,7 +179,7 @@ chmod +x scripts/deploy.sh
 
 The script runs Terraform to provision infrastructure, waits for the instance, then runs Ansible to configure the application. Total deployment takes roughly 8-12 minutes.
 
-**4. Populate bot tokens**
+**5. Populate bot tokens**
 
 After `terraform apply`, add your bot tokens to Secret Manager:
 

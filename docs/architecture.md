@@ -260,8 +260,9 @@ The port binding is intentionally `127.0.0.1:3000` (localhost only). The contain
 ```mermaid
 graph TD
     A["1. Clone Repository"] --> B["2. Configure terraform.tfvars"]
-    B --> C["3. Run deploy.sh"]
-    C --> D["4. Terraform Init + Apply"]
+    B --> B2["3. Run setup-tf-backend.sh\n(creates GCS state bucket)"]
+    B2 --> C["4. Run deploy.sh"]
+    C --> D["5. Terraform Init + Apply"]
     D --> E["5. VPC + NAT + Firewall"]
     D --> F["6. GCE Instance + Boot"]
     D --> G["7. Secret Manager + IAM\n(4 secrets: API keys + bot tokens)"]
@@ -290,6 +291,7 @@ graph TD
 
 | Concern | Managed By | Files |
 |---------|-----------|-------|
+| Remote state (GCS bucket) | Script | `scripts/setup-tf-backend.sh` |
 | Network (VPC, NAT, firewall) | Terraform | `network.tf` |
 | Compute (instance, image) | Terraform | `compute.tf` |
 | IAM (service account, roles) | Terraform | `iam.tf` |
