@@ -252,12 +252,10 @@ For setup details and dashboard configuration, see [docs/cost-monitoring.md](doc
 
 ## Author
 
-**Mohamed AbdelAziz** -- Senior DevOps Engineer | 12 Years | Kubernetes GCP AWS
+**Mohamed AbdelAziz** -- Senior DevOps Architect
+12 years career tech journey, Servers, Kubernetes, GCP, AWS and AI Infrastructure
 
-- [GitHub](https://github.com/maziz00)
-- [LinkedIn](https://www.linkedin.com/in/maziz00/)
-- [Medium](https://medium.com/@maziz00)
-- [Upwork](https://www.upwork.com/freelancers/maziz00)
+- [LinkedIn](https://www.linkedin.com/in/maziz00/) | [Medium](https://medium.com/@maziz00) | [Upwork](https://www.upwork.com/freelancers/maziz00?s=1110580753140797440) | [Consulting](https://calendly.com/maziz00/devops)
 
 ---
 
