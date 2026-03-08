@@ -24,16 +24,6 @@ variable "zone" {
   }
 }
 
-variable "domain_name" {
-  description = "Fully-qualified domain name for the Google-managed SSL certificate and DNS record (e.g. openclaw.example.com)."
-  type        = string
-
-  validation {
-    condition     = can(regex("^[a-z0-9][a-z0-9.-]+\\.[a-z]{2,}$", var.domain_name))
-    error_message = "domain_name must be a valid FQDN (e.g. app.example.com)."
-  }
-}
-
 variable "instance_type" {
   description = "GCE machine type for the OpenClaw application instance."
   type        = string
@@ -97,14 +87,3 @@ variable "ssh_source_ranges" {
   }
 }
 
-variable "enable_dns" {
-  description = "Whether to create a Cloud DNS A record pointing the domain to the load balancer IP. Requires dns_zone_name to be set and the zone to already exist in this project."
-  type        = bool
-  default     = false
-}
-
-variable "dns_zone_name" {
-  description = "Name of the existing Cloud DNS managed zone to create the A record in. Required when enable_dns = true."
-  type        = string
-  default     = ""
-}

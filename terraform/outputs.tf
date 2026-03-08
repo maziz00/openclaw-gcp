@@ -1,16 +1,6 @@
 output "instance_ip" {
-  description = "Internal (private) IP address of the OpenClaw GCE instance. Use IAP tunnel or LB to reach the app; the instance has no public IP."
+  description = "Internal (private) IP address of the OpenClaw GCE instance. The instance has no public IP — access via IAP tunnel only."
   value       = google_compute_instance.openclaw.network_interface[0].network_ip
-}
-
-output "lb_ip_address" {
-  description = "Global static IP address assigned to the HTTPS load balancer. Point your DNS A record here."
-  value       = google_compute_global_address.lb.address
-}
-
-output "lb_url" {
-  description = "Public HTTPS URL for the OpenClaw application. The SSL cert may take up to 60 minutes to provision after DNS propagation."
-  value       = "https://${var.domain_name}"
 }
 
 output "instance_name" {
@@ -34,16 +24,23 @@ output "vertex_ai_service_account_email" {
 }
 
 output "secret_ids" {
-  description = "Map of secret names to their full Secret Manager resource IDs. Use these IDs when referencing secrets from other Terraform configurations or scripts."
+  description = "Map of secret names to their full Secret Manager resource IDs. Operator must populate values via gcloud CLI after terraform apply."
   value = {
-    anthropic_api_key    = google_secret_manager_secret.anthropic_api_key.id
+    anthropic_api_key     = google_secret_manager_secret.anthropic_api_key.id
     vertex_ai_credentials = google_secret_manager_secret.vertex_ai_credentials.id
+    telegram_bot_token    = google_secret_manager_secret.telegram_bot_token.id
+    discord_bot_token     = google_secret_manager_secret.discord_bot_token.id
   }
 }
 
 output "iap_ssh_command" {
-  description = "Convenience command to SSH into the instance via IAP tunnel (no public IP required). Run this from a machine with gcloud CLI and IAP permissions."
+  description = "Command to SSH into the instance via IAP tunnel (no public IP required)."
   value       = "gcloud compute ssh ${google_compute_instance.openclaw.name} --zone=${var.zone} --project=${var.project_id} --tunnel-through-iap"
+}
+
+output "iap_tunnel_command" {
+  description = "Command to forward the OpenClaw UI to your local browser via IAP SSH tunnel. Run this, then open http://localhost:3000."
+  value       = "gcloud compute ssh ${google_compute_instance.openclaw.name} --zone=${var.zone} --project=${var.project_id} --tunnel-through-iap -- -L 3000:localhost:3000"
 }
 
 output "log_sink_bucket" {

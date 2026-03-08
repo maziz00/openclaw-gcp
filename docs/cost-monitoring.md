@@ -211,7 +211,7 @@ Based on running AI workloads in production:
 2. **Cache common prompts** -- If OpenClaw supports prompt caching, enable it to reduce redundant API calls
 3. **Set Vertex AI quotas** -- If using Vertex AI, set request-per-minute quotas to prevent runaway costs from bugs or abuse
 4. **Review the daily dashboard** -- A 5-minute daily check catches anomalies before they become $500 surprises
-5. **Right-size the instance** -- `e2-standard-2` (2 vCPU, 8 GB) is generous for a single-user AI assistant; `e2-small` may suffice for light usage
+5. **Right-size the instance** -- `e2-standard-2` (2 vCPU, 8 GB) is generous for a single-user AI assistant running OpenClaw + monitoring; `e2-small` may suffice for light usage
 
 ---
 

@@ -102,14 +102,10 @@ info "Extracting Terraform outputs..."
 
 INSTANCE_NAME=$(terraform output -raw instance_name 2>/dev/null || echo "openclaw-production-instance")
 INSTANCE_ZONE=$(terraform output -raw instance_zone 2>/dev/null || echo "")
-LB_IP=$(terraform output -raw load_balancer_ip 2>/dev/null || echo "")
 PROJECT_ID=$(terraform output -raw project_id 2>/dev/null || echo "")
 
 if [[ -n "${INSTANCE_ZONE}" ]]; then
     info "Instance: ${INSTANCE_NAME} (${INSTANCE_ZONE})"
-fi
-if [[ -n "${LB_IP}" ]]; then
-    info "Load Balancer IP: ${LB_IP}"
 fi
 
 echo ""
@@ -160,7 +156,6 @@ export GCP_PROJECT_ID="${PROJECT_ID}"
 
 ansible-playbook site.yml \
     -e "gcp_project_id=${PROJECT_ID}" \
-    -e "domain_name=$(cd "${TF_DIR}" && terraform output -raw domain_name 2>/dev/null || echo '')" \
     -v
 
 success "Application deployed."
@@ -174,29 +169,16 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  OpenClaw Deployment Complete${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-
-if [[ -n "${LB_IP}" ]]; then
-    DOMAIN_NAME=$(cd "${TF_DIR}" && terraform output -raw domain_name 2>/dev/null || echo "")
-    echo -e "  Load Balancer IP:  ${BLUE}${LB_IP}${NC}"
-    if [[ -n "${DOMAIN_NAME}" ]]; then
-        echo -e "  Application URL:   ${BLUE}https://${DOMAIN_NAME}${NC}"
-    fi
-fi
-
-echo -e "  Instance:          ${BLUE}${INSTANCE_NAME}${NC}"
-if [[ -n "${INSTANCE_ZONE}" ]]; then
-    echo -e "  Zone:              ${BLUE}${INSTANCE_ZONE}${NC}"
-fi
-
+echo -e "  Instance:    ${BLUE}${INSTANCE_NAME}${NC}"
+echo -e "  Zone:        ${BLUE}${INSTANCE_ZONE}${NC}"
 echo ""
-echo -e "  SSH via IAP:"
+echo -e "  SSH access (IAP tunnel):"
 echo -e "    ${YELLOW}gcloud compute ssh ${INSTANCE_NAME} --zone=${INSTANCE_ZONE} --tunnel-through-iap${NC}"
 echo ""
-
-if [[ -n "${DOMAIN_NAME}" ]]; then
-    echo -e "  ${YELLOW}Note:${NC} The Google-managed SSL certificate may take 15-60 minutes"
-    echo -e "  to provision. HTTPS will not work until the certificate is active."
-    echo -e "  Check status: gcloud compute ssl-certificates list"
-fi
-
+echo -e "  Browser access (SSH port-forward to OpenClaw UI):"
+echo -e "    ${YELLOW}gcloud compute ssh ${INSTANCE_NAME} --zone=${INSTANCE_ZONE} --tunnel-through-iap -- -L 3000:localhost:3000${NC}"
+echo -e "  Then open: ${BLUE}http://localhost:3000${NC}"
+echo ""
+echo -e "  ${YELLOW}Next step:${NC} Populate bot tokens in Secret Manager if not done yet."
+echo -e "  See terraform/secrets.tf for the gcloud commands."
 echo ""

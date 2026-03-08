@@ -9,8 +9,9 @@ data "google_compute_image" "almalinux9" {
 }
 
 # ---------------------------------------------------------------------------
-# GCE Instance — no public IP; all traffic flows through the HTTPS LB.
-# IAP tunnel is used for SSH access.
+# GCE Instance — no public IP; no inbound web traffic.
+# OpenClaw connects outbound to Telegram/Discord/WhatsApp APIs via Cloud NAT.
+# SSH access via IAP tunnel only.
 # ---------------------------------------------------------------------------
 resource "google_compute_instance" "openclaw" {
   name         = "${local.name_prefix}-instance"
@@ -77,9 +78,8 @@ resource "google_compute_instance" "openclaw" {
         ansible.posix \
         --quiet 2>/dev/null || true
 
-      # --- Signal readiness for health check ---
+      # --- Signal readiness ---
       # OpenClaw app is deployed by Ansible after this script runs.
-      # The health check endpoint becomes available once Ansible finishes.
       echo "Bootstrap complete: $(date)" >> /var/log/openclaw-startup.log
     EOT
   }
@@ -103,22 +103,3 @@ resource "google_compute_instance" "openclaw" {
   }
 }
 
-# ---------------------------------------------------------------------------
-# Unmanaged Instance Group — wraps the single GCE instance for the LB backend.
-# Using unmanaged (not MIG) since OpenClaw is a stateful single-instance app.
-# Switch to google_compute_instance_group_manager for autoscaling in future.
-# ---------------------------------------------------------------------------
-resource "google_compute_instance_group" "openclaw" {
-  name        = "${local.name_prefix}-instance-group"
-  description = "OpenClaw application instance group (unmanaged)"
-  zone        = var.zone
-  project     = var.project_id
-  network     = google_compute_network.main.id
-
-  instances = [google_compute_instance.openclaw.self_link]
-
-  named_port {
-    name = "http"
-    port = 80
-  }
-}

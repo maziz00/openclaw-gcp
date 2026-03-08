@@ -21,9 +21,10 @@ selinux_state: enforcing
 selinux_policy: targeted
 
 # Firewalld
+# No HTTP/HTTPS — the instance accepts no inbound web traffic.
+# All messaging channel traffic is outbound via Cloud NAT.
+# SSH is used exclusively by the IAP tunnel.
 firewalld_services:
-  - http
-  - https
   - ssh
 
 # Services to disable

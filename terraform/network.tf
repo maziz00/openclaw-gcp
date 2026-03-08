@@ -63,30 +63,6 @@ resource "google_compute_router_nat" "main" {
 # Firewall Rules
 # ---------------------------------------------------------------------------
 
-# Allow GCP health-check probes to reach the instance on port 80
-# Health-check source ranges are documented at:
-# https://cloud.google.com/load-balancing/docs/health-checks#fw-rule
-resource "google_compute_firewall" "allow_health_check" {
-  name        = "${local.name_prefix}-allow-health-check"
-  network     = google_compute_network.main.id
-  project     = var.project_id
-  description = "Allow GCP load balancer health check probes on port 80"
-  direction   = "INGRESS"
-  priority    = 1000
-
-  source_ranges = [
-    "130.211.0.0/22",
-    "35.191.0.0/16",
-  ]
-
-  target_tags = ["openclaw-app"]
-
-  allow {
-    protocol = "tcp"
-    ports    = ["80"]
-  }
-}
-
 # Allow direct SSH from operator CIDRs (optional — prefer IAP below)
 resource "google_compute_firewall" "allow_ssh" {
   count = length(var.ssh_source_ranges) > 0 ? 1 : 0

@@ -46,12 +46,12 @@ Most "production-ready" Docker deployments disable SELinux because it causes per
 The Ansible `base-hardening` role sets the default firewalld zone to **drop**, which silently discards all traffic that does not match an explicit allow rule.
 
 ```yaml
-# Allowed services only
+# Allowed services only — no HTTP/HTTPS because there is nothing to serve inbound
 firewalld_services:
-  - http
-  - https
   - ssh
 ```
+
+With no inbound web traffic to accept, the firewall allows only the SSH service. This is a significantly smaller attack surface than a typical web-facing VM. The `ssh` service is used exclusively by the IAP tunnel.
 
 ### Combined with GCP Firewall
 
@@ -59,12 +59,14 @@ The host-level firewalld works alongside the GCP VPC firewall rules:
 
 | Layer | Rules | Purpose |
 |-------|-------|---------|
-| GCP VPC Firewall | Allow health check ranges on TCP 80, allow IAP on TCP 22, deny-all at priority 65534 | Network-level filtering before traffic reaches the instance |
-| firewalld (host) | Default drop zone, allow HTTP/HTTPS/SSH only | Defense in depth -- if GCP rules are misconfigured, host firewall still blocks |
+| GCP VPC Firewall | Allow IAP on TCP 22, deny-all at priority 65534 | Network-level filtering before traffic reaches the instance |
+| firewalld (host) | Default drop zone, allow SSH only | Defense in depth -- if GCP rules are misconfigured, host firewall still blocks |
+
+Both layers must be bypassed to reach the instance. In practice this means an attacker would need to compromise Google's IAP infrastructure and then break through the host firewall.
 
 ### Disabled Services
 
-Services that have no business running on an AI application server are explicitly stopped and disabled:
+Services that have no business running on an AI assistant server are explicitly stopped and disabled:
 
 ```yaml
 disabled_services:
@@ -118,12 +120,24 @@ IAP verifies the user's GCP identity before establishing the tunnel. No SSH port
 
 The deployment follows a strict policy: **no secrets in version control, no secrets on disk, no secrets in metadata**.
 
+### What Is Stored
+
+Four secrets are managed in Secret Manager:
+
+| Secret | Contents | Who Reads It |
+|--------|---------|--------------|
+| `openclaw-production-anthropic-api-key` | Anthropic API key | OpenClaw container (via env var) |
+| `openclaw-production-vertex-ai-credentials` | Vertex AI SA key (JSON) | OpenClaw container (via env var) |
+| `openclaw-production-telegram-bot-token` | Telegram bot token | OpenClaw container (via env var) |
+| `openclaw-production-discord-bot-token` | Discord bot token | OpenClaw container (via env var) |
+
 ### How Secrets Flow
 
 1. **Terraform** creates Secret Manager secret *resources* (the container, not the value)
 2. **Operator** manually adds the secret *value* via GCP Console or CLI:
    ```bash
-   echo -n "sk-ant-..." | gcloud secrets versions add openclaw-anthropic-api-key --data-file=-
+   echo -n "YOUR_TELEGRAM_BOT_TOKEN" | \
+     gcloud secrets versions add openclaw-production-telegram-bot-token --data-file=-
    ```
 3. **Ansible** fetches the secret value at deploy time using the instance's service account
 4. **Docker** receives the secret as a runtime environment variable
@@ -148,20 +162,21 @@ The service account does **not** have:
 
 ## Network Security
 
-### No Public IP
+### No Public IP, No Inbound Traffic
 
-The GCE instance has no external IP address. This eliminates the entire class of direct-to-instance attacks.
+The GCE instance has no external IP address and accepts zero inbound connections from the internet. This eliminates the entire class of direct-to-instance attacks, including port scans, brute force, and vulnerability exploitation.
 
 | Traffic Direction | Path |
 |-------------------|------|
-| Inbound (user requests) | Client --> HTTPS LB --> Instance (via health check ranges) |
-| Inbound (SSH) | Operator --> IAP Tunnel --> Instance |
-| Outbound (API calls) | Instance --> Cloud NAT --> Internet |
+| Inbound (SSH only) | Operator --> IAP Tunnel --> Instance |
+| Outbound (bot polling) | Instance --> Cloud NAT --> Telegram / Discord APIs |
+| Outbound (Claude API) | Instance --> Cloud NAT --> Anthropic / Vertex AI |
 | Outbound (GCP APIs) | Instance --> Private Google Access (no NAT needed) |
 
 ### Cloud NAT
 
 Cloud NAT provides outbound internet access for:
+- OpenClaw polling Telegram and Discord APIs
 - Pulling Docker images from Docker Hub / GCR
 - Calling the Anthropic API (when using `anthropic_api` provider)
 - System package updates (`dnf update`)
@@ -231,6 +246,7 @@ The `ip_forward` setting is intentionally set to `1` because Docker requires IP 
 - **Log rotation enforced** -- prevents disk exhaustion from runaway logs (10 MB x 3 files per container)
 - **Overlay2 storage driver** -- production-grade, no deprecated drivers
 - **Legacy packages removed** -- podman, buildah, and old Docker packages are purged to prevent conflicts
+- **Localhost binding** -- OpenClaw binds to `127.0.0.1:3000` only; no container port is accessible from the network
 
 ### Shielded VM
 
@@ -257,6 +273,10 @@ getenforce
 firewall-cmd --get-default-zone
 # Expected: drop
 
+# Verify only SSH is allowed (no http/https)
+firewall-cmd --list-services
+# Expected: ssh
+
 # Verify SSH hardening
 sshd -T | grep -E 'permitrootlogin|passwordauthentication|maxauthtries'
 # Expected: permitrootlogin no, passwordauthentication no, maxauthtries 3
@@ -265,9 +285,13 @@ sshd -T | grep -E 'permitrootlogin|passwordauthentication|maxauthtries'
 docker info | grep "Security Options"
 # Expected: selinux
 
-# Verify no public IP
+# Verify no public IP (outbound via Cloud NAT)
 curl -s ifconfig.me
 # Expected: Cloud NAT IP, not instance IP (verify in GCP Console)
+
+# Verify OpenClaw binds to localhost only
+ss -tlnp | grep 3000
+# Expected: 127.0.0.1:3000
 
 # Verify disabled services
 systemctl is-active postfix rpcbind avahi-daemon

@@ -14,6 +14,16 @@ VERTEX_AI_LOCATION=us-central1
 GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/vertex_ai_credentials.json
 {% endif %}
 
+{% if openclaw_channels.telegram | default(false) %}
+# Telegram Bot Token (read from secrets at deploy time)
+TELEGRAM_BOT_TOKEN={{ lookup('ansible.builtin.file', secrets_dir + '/telegram_bot_token') }}
+{% endif %}
+
+{% if openclaw_channels.discord | default(false) %}
+# Discord Bot Token (read from secrets at deploy time)
+DISCORD_BOT_TOKEN={{ lookup('ansible.builtin.file', secrets_dir + '/discord_bot_token') }}
+{% endif %}
+
 # Application Settings
 NODE_ENV=production
 PORT=3000

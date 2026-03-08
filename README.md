@@ -10,61 +10,62 @@ Fully automated, security-first deployment of [OpenClaw](https://openclaw.ai) pe
 
 In my 12 years managing enterprise infrastructure across the UAE and Egypt, I have seen too many AI deployments treated as afterthoughts -- containers thrown onto a VM with no hardening, secrets in environment variables, and zero cost visibility. This project is how I deploy AI assistants for production: security-first, cost-aware, and fully automated.
 
+No domain name required. OpenClaw communicates outbound to Telegram, Discord, and WhatsApp APIs. The VM is unreachable from the internet.
+
 ---
 
 ## Architecture
 
 ```mermaid
 graph TB
-    Client["Client Browser"]
+    subgraph Channels["Messaging Channels"]
+        Telegram["Telegram API"]
+        Discord["Discord API"]
+    end
 
     subgraph GCP["Google Cloud Platform"]
-        subgraph LB["HTTPS Load Balancer"]
-            ManagedCert["Google-Managed<br/>SSL Certificate"]
-            ForwardingRule["Global Forwarding Rule<br/>:443"]
-        end
-
         subgraph VPC["VPC Network (10.10.0.0/24)"]
             subgraph Instance["AlmaLinux 9 (e2-standard-2)"]
-                Nginx["Nginx<br/>Reverse Proxy :80"]
-                OpenClaw["OpenClaw<br/>Docker Container :3000"]
-                CostTracker["Cost Tracker<br/>systemd Service"]
+                OC["OpenClaw :3000\n(127.0.0.1 only)"]
+                CT["Cost Tracker\nsystemd"]
+                NE["Node Exporter\n:9100"]
             end
         end
 
-        SecretMgr["GCP Secret Manager<br/>API Keys"]
-        CloudNAT["Cloud NAT<br/>Egress Only"]
-        Monitoring["Cloud Monitoring<br/>Budget Alerts"]
-        IAP["Identity-Aware Proxy<br/>SSH Access"]
+        CloudNAT["Cloud NAT\n(Egress Only)"]
+        SecretMgr["Secret Manager\nBot tokens + API keys"]
+        Monitoring["Cloud Monitoring\nBudget Alerts"]
+        IAP["Identity-Aware Proxy\nSSH Only"]
     end
 
-    ClaudeAPI["Claude AI<br/>Vertex AI / Anthropic API"]
+    ClaudeAPI["Claude AI\nVertex AI / Anthropic"]
+    Operator["Operator\n(gcloud CLI)"]
 
-    Client -->|HTTPS :443| ForwardingRule
-    ForwardingRule --> ManagedCert
-    ManagedCert --> Nginx
-    Nginx -->|Proxy :3000| OpenClaw
-    OpenClaw -->|Fetch secrets| SecretMgr
-    OpenClaw -->|via Cloud NAT| CloudNAT
+    OC -->|Bot API calls| CloudNAT
+    CloudNAT --> Telegram
+    CloudNAT --> Discord
     CloudNAT --> ClaudeAPI
-    CostTracker --> Monitoring
-    IAP -->|SSH Tunnel| Instance
+    OC -->|Fetch secrets| SecretMgr
+    CT --> Monitoring
+    Operator -->|IAP SSH Tunnel| IAP
+    IAP --> Instance
 
     style GCP fill:#e8f0fe,stroke:#4285f4,stroke-width:2px
     style VPC fill:#fce8e6,stroke:#ea4335,stroke-width:1px
     style Instance fill:#fef7e0,stroke:#fbbc04,stroke-width:1px
-    style LB fill:#e6f4ea,stroke:#34a853,stroke-width:1px
+    style Channels fill:#e6f4ea,stroke:#34a853,stroke-width:1px
 ```
 
 ---
 
 ## Features
 
-- **Security-first** -- SELinux enforcing, firewalld with default-drop zone, CIS-aligned sysctl hardening, Shielded VM with Secure Boot
-- **Zero secrets in code** -- GCP Secret Manager with runtime fetching; API keys never touch disk or version control
+- **Outbound-only bot architecture** -- No inbound ports open; the VM is completely unreachable from the internet; no domain or SSL certificate required
+- **Telegram and Discord integration** -- Bot tokens fetched from Secret Manager at deploy time; long polling means zero webhook infrastructure
+- **Security-first** -- SELinux enforcing, firewalld with default-drop zone (SSH only), CIS-aligned sysctl hardening, Shielded VM with Secure Boot
+- **Zero secrets in code** -- GCP Secret Manager with runtime fetching; API keys and bot tokens never touch disk or version control
 - **Dual Claude AI provider support** -- Toggle between Anthropic direct API and Vertex AI with a single variable
-- **Enterprise TLS** -- Google-managed SSL certificate via HTTPS Load Balancer; zero certificate renewal overhead
-- **No public IP** -- Instance sits behind Cloud NAT for egress; SSH via Identity-Aware Proxy only
+- **No public IP** -- Instance has no external IP; egress via Cloud NAT; SSH via Identity-Aware Proxy only
 - **Claude API cost monitoring** -- Python systemd service pushes token usage to Cloud Monitoring with budget alerts
 - **AlmaLinux 9** -- Red Hat ecosystem, binary-compatible with RHEL, enterprise-grade without the license cost
 - **Fully automated** -- Single `deploy.sh` runs Terraform + Ansible end to end
@@ -74,44 +75,40 @@ graph TB
 ## Project Structure
 
 ```
-openclaw-gcp-deployment/
+openclaw-gcp/
 |-- README.md
 |-- LICENSE
-|-- deploy.sh
+|-- scripts/
+|   `-- deploy.sh              # Single command: Terraform + Ansible end to end
 |-- terraform/
-|   |-- versions.tf          # Provider versions and constraints
-|   |-- backend.tf           # GCS remote state (optional)
-|   |-- variables.tf         # All input variables with validation
-|   |-- main.tf              # Locals, data sources
-|   |-- network.tf           # VPC, subnet, Cloud NAT, firewall rules
-|   |-- compute.tf           # GCE instance, instance group
-|   |-- lb.tf                # HTTPS LB, managed SSL, health check
-|   |-- iam.tf               # Service account, IAM bindings
-|   |-- secrets.tf           # Secret Manager resources
-|   |-- monitoring.tf        # Budget alerts, notification channels
-|   |-- dns.tf               # Cloud DNS record (optional)
-|   |-- outputs.tf           # Key outputs (LB IP, instance name, etc.)
+|   |-- versions.tf            # Provider versions and constraints
+|   |-- backend.tf             # GCS remote state (optional)
+|   |-- variables.tf           # Input variables with validation
+|   |-- main.tf                # Locals, data sources
+|   |-- network.tf             # VPC, subnet, Cloud NAT, firewall rules
+|   |-- compute.tf             # GCE instance (no public IP)
+|   |-- iam.tf                 # Service account, IAM bindings
+|   |-- secrets.tf             # Secret Manager resources (API keys + bot tokens)
+|   |-- monitoring.tf          # Budget alerts, notification channels
+|   |-- outputs.tf             # Key outputs (instance name, IAP commands, secret IDs)
 |   `-- terraform.tfvars.example
 |-- ansible/
 |   |-- ansible.cfg
 |   |-- site.yml
 |   |-- inventory/
-|   |   `-- gcp.yml           # Dynamic GCP inventory
+|   |   `-- gcp.yml            # Dynamic GCP inventory
 |   |-- group_vars/
-|   |   `-- all.yml
+|   |   `-- all.yml            # Channel config, provider, monitoring
 |   `-- roles/
-|       |-- base-hardening/   # SELinux, firewalld, SSH, sysctl, CIS
-|       |-- docker/           # Docker CE, Compose, SELinux integration
-|       |-- secrets/          # GCP Secret Manager fetch
-|       |-- openclaw/         # OpenClaw container deployment
-|       |-- nginx/            # Reverse proxy configuration
-|       `-- monitoring/       # Cost tracker, node exporter
-|-- docs/
-|   |-- architecture.md
-|   |-- security.md
-|   `-- cost-monitoring.md
-`-- scripts/
-    `-- deploy.sh
+|       |-- base-hardening/    # SELinux, firewalld (SSH only), SSH, sysctl, CIS
+|       |-- docker/            # Docker CE, Compose, SELinux integration
+|       |-- secrets/           # GCP Secret Manager fetch (API keys + bot tokens)
+|       |-- openclaw/          # OpenClaw container deployment
+|       `-- monitoring/        # Cost tracker, node exporter
+`-- docs/
+    |-- architecture.md
+    |-- security.md
+    `-- cost-monitoring.md
 ```
 
 ---
@@ -124,9 +121,8 @@ openclaw-gcp-deployment/
 | Ansible | >= 2.15 | Configuration management |
 | gcloud CLI | Latest | GCP authentication and project setup |
 | GCP Project | -- | With billing enabled |
-| Domain name | -- | For the managed SSL certificate |
 
-You also need the following GCP APIs enabled:
+Enable the required GCP APIs:
 
 ```bash
 gcloud services enable \
@@ -134,8 +130,7 @@ gcloud services enable \
   secretmanager.googleapis.com \
   iap.googleapis.com \
   monitoring.googleapis.com \
-  billingbudgets.googleapis.com \
-  dns.googleapis.com
+  billingbudgets.googleapis.com
 ```
 
 ---
@@ -159,9 +154,7 @@ Edit `terraform/terraform.tfvars` with your values:
 
 ```hcl
 project_id         = "my-gcp-project"
-region             = "us-central1"
 zone               = "us-central1-a"
-domain_name        = "openclaw.example.com"
 notification_email = "alerts@example.com"
 claude_provider    = "anthropic_api"   # or "vertex_ai"
 budget_amount      = 100
@@ -176,6 +169,41 @@ chmod +x scripts/deploy.sh
 
 The script runs Terraform to provision infrastructure, waits for the instance, then runs Ansible to configure the application. Total deployment takes roughly 8-12 minutes.
 
+**4. Populate bot tokens**
+
+After `terraform apply`, add your bot tokens to Secret Manager:
+
+```bash
+# Telegram bot token (from @BotFather)
+echo -n "YOUR_TELEGRAM_BOT_TOKEN" | \
+  gcloud secrets versions add openclaw-production-telegram-bot-token --data-file=-
+
+# Discord bot token (from Discord Developer Portal)
+echo -n "YOUR_DISCORD_BOT_TOKEN" | \
+  gcloud secrets versions add openclaw-production-discord-bot-token --data-file=-
+```
+
+Then run Ansible to pick up the new tokens:
+
+```bash
+cd ansible && ansible-playbook site.yml -e "gcp_project_id=my-gcp-project"
+```
+
+---
+
+## Accessing the UI
+
+To access the OpenClaw web UI in your browser without a domain or public IP:
+
+```bash
+gcloud compute ssh openclaw-production-instance \
+  --zone us-central1-a \
+  --tunnel-through-iap \
+  -- -L 3000:localhost:3000
+```
+
+Then open `http://localhost:3000`. The SSH port-forward keeps the session open; close the terminal to end it. This is for admin and configuration purposes -- end users interact with OpenClaw through Telegram or Discord.
+
 ---
 
 ## Configuration
@@ -187,13 +215,11 @@ The script runs Terraform to provision infrastructure, waits for the instance, t
 | `project_id` | -- (required) | GCP project ID |
 | `region` | `us-central1` | GCP region |
 | `zone` | -- (required) | GCP zone within region |
-| `domain_name` | -- (required) | FQDN for SSL certificate |
 | `instance_type` | `e2-standard-2` | GCE machine type (2 vCPU, 8 GB) |
 | `claude_provider` | `anthropic_api` | `anthropic_api` or `vertex_ai` |
 | `environment` | `production` | Environment label (production/staging/development) |
 | `budget_amount` | `100` | Monthly budget alert threshold in USD |
 | `notification_email` | -- (required) | Email for budget and monitoring alerts |
-| `enable_dns` | `false` | Create Cloud DNS A record |
 | `ssh_source_ranges` | `[]` | CIDR ranges for direct SSH (prefer IAP instead) |
 
 ### Key Ansible Variables
@@ -202,8 +228,9 @@ The script runs Terraform to provision infrastructure, waits for the instance, t
 |----------|---------|-------------|
 | `claude_provider` | `anthropic_api` | Must match Terraform setting |
 | `openclaw_version` | `latest` | OpenClaw Docker image tag |
-| `openclaw_port` | `3000` | Application listen port |
-| `domain_name` | `openclaw.example.com` | Domain for Nginx server_name |
+| `openclaw_port` | `3000` | Application listen port (localhost only) |
+| `openclaw_channels.telegram` | `true` | Enable Telegram bot (requires secret) |
+| `openclaw_channels.discord` | `true` | Enable Discord bot (requires secret) |
 | `cost_tracker_interval` | `300` | Seconds between cost metric pushes |
 
 ---
@@ -213,11 +240,11 @@ The script runs Terraform to provision infrastructure, waits for the instance, t
 This deployment follows a defense-in-depth approach:
 
 - **SELinux enforcing** with targeted policy and Docker container management
-- **firewalld** with default-drop zone -- only HTTP, HTTPS, and SSH allowed
+- **firewalld** with default-drop zone -- SSH only (no HTTP/HTTPS; there is nothing to serve)
 - **SSH hardened** -- no root login, no password auth, max 3 attempts
 - **No public IP** on the instance -- egress via Cloud NAT, SSH via IAP tunnel
 - **Shielded VM** -- Secure Boot, vTPM, and integrity monitoring enabled
-- **GCP Secret Manager** -- API keys fetched at runtime, never stored on disk
+- **GCP Secret Manager** -- API keys and bot tokens fetched at runtime, never stored on disk
 - **CIS-aligned sysctl** -- ICMP broadcast ignore, SYN cookies, martian logging, ASLR
 
 For the full security documentation, see [docs/security.md](docs/security.md).
@@ -244,7 +271,7 @@ For setup details and dashboard configuration, see [docs/cost-monitoring.md](doc
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) -- Network topology, compute, load balancing, secrets flow
+- [Architecture](docs/architecture.md) -- Network topology, compute, messaging channels, secrets flow
 - [Security](docs/security.md) -- SELinux, firewalld, SSH, CIS alignment, Docker hardening
 - [Cost Monitoring](docs/cost-monitoring.md) -- Claude API tracking, budget alerts, dashboards
 

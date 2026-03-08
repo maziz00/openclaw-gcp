@@ -17,10 +17,6 @@ project_id = "your-gcp-project-id"
 # GCP zone within the region — must match the region below
 zone = "us-central1-a"
 
-# Fully-qualified domain name for the application
-# Google-managed SSL cert will be issued for this domain
-domain_name = "openclaw.yourdomain.com"
-
 # Email address for budget alerts and monitoring notifications
 notification_email = "devops@yourdomain.com"
 
@@ -33,7 +29,7 @@ notification_email = "devops@yourdomain.com"
 # region = "us-central1"
 
 # GCE machine type — e2-standard-2 (2 vCPU, 8 GB RAM) is the default
-# For production with heavy LLM traffic, consider e2-standard-4
+# For heavier LLM usage, consider e2-standard-4
 # instance_type = "e2-standard-2"
 
 # Claude API provider:
@@ -55,13 +51,3 @@ notification_email = "devops@yourdomain.com"
 # Leave empty ([]) to use IAP tunneling only (recommended).
 # Example for specific office IP: ["203.0.113.42/32"]
 # ssh_source_ranges = []
-
-# Cloud DNS integration
-# Set to true only if you have a Cloud DNS managed zone in this project
-# and want Terraform to manage the A record automatically.
-# Default: false
-# enable_dns = false
-
-# Name of the existing Cloud DNS managed zone (required when enable_dns = true)
-# Find it with: gcloud dns managed-zones list --project=YOUR_PROJECT_ID
-# dns_zone_name = "your-dns-zone-name"

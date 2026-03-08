@@ -7,12 +7,25 @@ claude_provider: "anthropic_api"
 openclaw_version: "latest"
 openclaw_port: 3000
 
-# Nginx
-nginx_port: 80
-domain_name: "openclaw.example.com"
-
 # GCP
 gcp_project_id: "your-gcp-project-id"
+
+# ---------------------------------------------------------------------------
+# Messaging Channel Configuration
+# OpenClaw connects outbound to these platforms via Cloud NAT.
+# No inbound ports are opened — no domain or TLS certificate required.
+#
+# Bot tokens are fetched from GCP Secret Manager by the secrets role at
+# deploy time. Populate the corresponding secrets in Secret Manager before
+# running Ansible (see terraform/secrets.tf for gcloud commands).
+# ---------------------------------------------------------------------------
+openclaw_channels:
+  telegram: true   # Requires telegram-bot-token secret; uses long polling by default
+  discord: true    # Requires discord-bot-token secret; uses Discord Gateway API
+  whatsapp: false  # Requires WhatsApp Business API setup; disabled by default
+
+telegram_secret_name: "openclaw-production-telegram-bot-token"
+discord_secret_name: "openclaw-production-discord-bot-token"
 
 # Monitoring
 node_exporter_version: "1.7.0"
