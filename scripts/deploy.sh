@@ -36,6 +36,15 @@ command -v terraform >/dev/null 2>&1 || error "terraform is not installed. Insta
 command -v ansible-playbook >/dev/null 2>&1 || error "ansible is not installed. Install with: pip install ansible"
 command -v gcloud >/dev/null 2>&1 || error "gcloud CLI is not installed. Install from https://cloud.google.com/sdk/docs/install"
 
+# google-auth is required by the GCP dynamic inventory plugin
+python3 -c "import google.auth" 2>/dev/null || error "Missing Python library 'google-auth'. Install with: pip3 install google-auth requests"
+
+# google.cloud Ansible collection is required for the GCP inventory plugin
+ansible-galaxy collection list google.cloud 2>/dev/null | grep -q "google.cloud" || {
+    warn "google.cloud Ansible collection not found. Installing..."
+    ansible-galaxy collection install google.cloud
+}
+
 TERRAFORM_VERSION=$(terraform version -json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['terraform_version'])" 2>/dev/null || terraform version | head -1 | grep -oP '\d+\.\d+\.\d+')
 info "Terraform version: ${TERRAFORM_VERSION}"
 
@@ -102,7 +111,11 @@ info "Extracting Terraform outputs..."
 
 INSTANCE_NAME=$(terraform output -raw instance_name 2>/dev/null || echo "openclaw-production-instance")
 INSTANCE_ZONE=$(terraform output -raw instance_zone 2>/dev/null || echo "")
-PROJECT_ID=$(terraform output -raw project_id 2>/dev/null || echo "")
+PROJECT_ID=$(terraform output -raw project_id 2>/dev/null || grep '^project_id' "${TFVARS_FILE}" | head -1 | sed 's/.*=\s*"\(.*\)"/\1/')
+
+if [[ -z "${PROJECT_ID}" ]]; then
+    error "Could not determine project ID from Terraform outputs or terraform.tfvars."
+fi
 
 if [[ -n "${INSTANCE_ZONE}" ]]; then
     info "Instance: ${INSTANCE_NAME} (${INSTANCE_ZONE})"
@@ -151,11 +164,25 @@ echo ""
 info "Running Ansible playbook..."
 cd "${ANSIBLE_DIR}"
 
-# Export project ID for the dynamic inventory plugin
+# Required env vars for dynamic inventory plugin and IAP ProxyCommand in ansible.cfg
 export GCP_PROJECT_ID="${PROJECT_ID}"
+export GCP_ZONE="${INSTANCE_ZONE}"
+
+# Detect OS Login username — GCP derives it from the Google account POSIX profile.
+# Ansible needs this to SSH in when OS Login is enabled on the instance.
+OSLOGIN_USER=$(gcloud compute os-login describe-profile \
+    --format='value(loginProfile.posixAccounts[0].username)' 2>/dev/null || echo "")
+
+if [[ -z "${OSLOGIN_USER}" ]]; then
+    warn "Could not detect OS Login username. Ansible will attempt connection without an explicit user."
+    warn "If it fails, run: gcloud compute os-login describe-profile"
+else
+    info "OS Login username: ${OSLOGIN_USER}"
+fi
 
 ansible-playbook site.yml \
     -e "gcp_project_id=${PROJECT_ID}" \
+    ${OSLOGIN_USER:+-e "ansible_user=${OSLOGIN_USER}"} \
     -v
 
 success "Application deployed."

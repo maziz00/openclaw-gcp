@@ -10,9 +10,7 @@ filters:
 keyed_groups:
   - key: zone
     prefix: zone
-  - key: labels.role
-    prefix: role
 hostnames:
-  - public_ip
+  - name   # use instance name, not public IP (instance has no public IP)
 compose:
-  ansible_host: networkInterfaces[0].accessConfigs[0].natIP
+  ansible_host: name   # gcloud compute start-iap-tunnel uses instance name

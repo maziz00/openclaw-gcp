@@ -1,3 +1,8 @@
+output "project_id" {
+  description = "GCP project ID where all resources are deployed."
+  value       = var.project_id
+}
+
 output "instance_ip" {
   description = "Internal (private) IP address of the OpenClaw GCE instance. The instance has no public IP — access via IAP tunnel only."
   value       = google_compute_instance.openclaw.network_interface[0].network_ip
