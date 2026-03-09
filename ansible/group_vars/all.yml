@@ -10,6 +10,10 @@ openclaw_port: 3000
 # GCP
 gcp_project_id: "your-gcp-project-id"
 
+# OS Login username — set this after first gcloud compute ssh to the instance.
+# Find it with: gcloud compute ssh INSTANCE --tunnel-through-iap --command="whoami"
+ansible_user: "maziz_acceleratedigits_com"
+
 # ---------------------------------------------------------------------------
 # Messaging Channel Configuration
 # OpenClaw connects outbound to these platforms via Cloud NAT.

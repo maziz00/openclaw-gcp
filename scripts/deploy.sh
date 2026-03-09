@@ -37,7 +37,7 @@ command -v ansible-playbook >/dev/null 2>&1 || error "ansible is not installed. 
 command -v gcloud >/dev/null 2>&1 || error "gcloud CLI is not installed. Install from https://cloud.google.com/sdk/docs/install"
 
 # google-auth is required by the GCP dynamic inventory plugin
-python3 -c "import google.auth" 2>/dev/null || error "Missing Python library 'google-auth'. Install with: pip3 install google-auth requests"
+python3 -c "import google.auth" 2>/dev/null || error "Missing Python library 'google-auth'. Install with: sudo apt install python3-google-auth python3-requests"
 
 # google.cloud Ansible collection is required for the GCP inventory plugin
 ansible-galaxy collection list google.cloud 2>/dev/null | grep -q "google.cloud" || {
@@ -170,8 +170,7 @@ export GCP_ZONE="${INSTANCE_ZONE}"
 
 # Detect OS Login username — GCP derives it from the Google account POSIX profile.
 # Ansible needs this to SSH in when OS Login is enabled on the instance.
-OSLOGIN_USER=$(gcloud compute os-login describe-profile \
-    --format='value(loginProfile.posixAccounts[0].username)' 2>/dev/null || echo "")
+OSLOGIN_USER=$(gcloud compute os-login describe-profile --format=json 2>/dev/null | python3 -c "import json,sys; p=json.load(sys.stdin).get('loginProfile',{}).get('posixAccounts',[]); print(p[0]['username'] if p else '')" 2>/dev/null || echo "")
 
 if [[ -z "${OSLOGIN_USER}" ]]; then
     warn "Could not detect OS Login username. Ansible will attempt connection without an explicit user."

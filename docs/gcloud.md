@@ -253,3 +253,4 @@ Run `terraform init` after adding the provider, then `terraform apply`.
 | DELTA metric kind | Custom metrics only support `GAUGE` or `CUMULATIVE`. Check the [metric kind docs](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors#MetricKind) before choosing. |
 | Alert policy 404 (eventual consistency) | Use `time_sleep` after `google_monitoring_metric_descriptor` — `depends_on` alone is not sufficient because GCP propagation happens after the API returns 200. |
 | billing_account on google_project | The `google_project` data source does not expose billing account. Use `google_billing_account` data source or an explicit variable. |
+| pip3 fails with externally-managed-environment | Ubuntu 23.04+ / Debian 12+ enforce PEP 668 — system Python is apt-managed. Use `sudo apt install python3-google-auth python3-requests` instead of pip3. |
