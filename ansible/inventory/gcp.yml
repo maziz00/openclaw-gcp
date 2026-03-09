@@ -1,7 +1,7 @@
 ---
 plugin: google.cloud.gcp_compute
 projects:
-  - "{{ lookup('ansible.builtin.env', 'GCP_PROJECT_ID') }}"
+  - claude-code-00
 auth_kind: application
 filters:
   - labels.app = openclaw
@@ -11,6 +11,6 @@ keyed_groups:
   - key: zone
     prefix: zone
 hostnames:
-  - name   # use instance name, not public IP (instance has no public IP)
+  - name
 compose:
-  ansible_host: name   # gcloud compute start-iap-tunnel uses instance name
+  ansible_host: name

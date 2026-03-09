@@ -1,4 +1,16 @@
 ---
+- name: Install security packages
+  ansible.builtin.dnf:
+    name:
+      - audit
+      - aide
+      - chrony
+      - policycoreutils-python-utils
+      - python3-libsemanage
+      - container-selinux
+      - firewalld
+    state: present
+
 - name: Ensure SELinux is {{ selinux_state }}
   ansible.posix.selinux:
     state: "{{ selinux_state }}"
@@ -9,16 +21,6 @@
     name: container_manage_cgroup
     state: true
     persistent: true
-
-- name: Install security packages
-  ansible.builtin.dnf:
-    name:
-      - audit
-      - aide
-      - chrony
-      - policycoreutils-python-utils
-      - firewalld
-    state: present
 
 - name: Apply sysctl hardening parameters
   ansible.posix.sysctl:
