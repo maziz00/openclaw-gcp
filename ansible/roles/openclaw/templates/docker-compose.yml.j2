@@ -7,7 +7,7 @@ services:
     container_name: openclaw
     restart: unless-stopped
     ports:
-      - "127.0.0.1:{{ openclaw_port }}:18791"
+      - "127.0.0.1:{{ openclaw_port }}:3000"
     env_file:
       - {{ openclaw_config_dir }}/openclaw.env
     volumes:
