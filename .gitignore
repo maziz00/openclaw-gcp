@@ -71,6 +71,7 @@ override.tf.json
 terraform.rc
 .terraform
 .terraform.lock.hcl
+tfplan
 
 # Claude
 CLAUDE.md

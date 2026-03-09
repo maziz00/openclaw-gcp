@@ -18,8 +18,12 @@ provider "google" {
   region  = var.region
   zone    = var.zone
 
-  # Increase default request timeout for long-running operations
-  # (Cloud SQL, service networking, SSL cert provisioning)
+  # Required for billingbudgets.googleapis.com and other APIs that use
+  # a quota project when authenticating with local ADC credentials.
+  # Tells the provider to pass X-Goog-User-Project on all API calls.
+  user_project_override = true
+  billing_project       = var.project_id
+
   request_timeout = "30m"
 }
 
@@ -27,6 +31,9 @@ provider "google-beta" {
   project = var.project_id
   region  = var.region
   zone    = var.zone
+
+  user_project_override = true
+  billing_project       = var.project_id
 
   request_timeout = "30m"
 }

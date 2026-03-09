@@ -63,6 +63,16 @@ variable "budget_amount" {
   }
 }
 
+variable "billing_account_id" {
+  description = "GCP billing account ID to attach the budget alert to. Format: XXXXXX-XXXXXX-XXXXXX. Find it with: gcloud billing accounts list"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9A-F]{6}-[0-9A-F]{6}-[0-9A-F]{6}$", var.billing_account_id))
+    error_message = "billing_account_id must be in the format XXXXXX-XXXXXX-XXXXXX (e.g. 01AB23-456789-CDEF01)."
+  }
+}
+
 variable "notification_email" {
   description = "Email address to receive budget alerts and monitoring notifications."
   type        = string

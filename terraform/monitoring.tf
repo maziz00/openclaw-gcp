@@ -24,8 +24,7 @@ resource "google_monitoring_notification_channel" "email" {
 # Requires the billing account ID to be known — we derive it from the project.
 # ---------------------------------------------------------------------------
 resource "google_billing_budget" "openclaw" {
-  # billing_account is required; we look it up from the project data source
-  billing_account = data.google_project.this.billing_account
+  billing_account = var.billing_account_id
 
   display_name = "OpenClaw ${var.environment} Monthly Budget"
 
@@ -79,7 +78,7 @@ resource "google_monitoring_metric_descriptor" "claude_api_tokens" {
   description  = "Number of Claude API tokens consumed per request. Emitted by the OpenClaw application."
   display_name = "OpenClaw Claude API Tokens Used"
   type         = "custom.googleapis.com/openclaw/claude_api_tokens_used"
-  metric_kind  = "DELTA"  # count of tokens in each reporting interval
+  metric_kind  = "CUMULATIVE"  # ever-increasing token counter; GCP custom metrics do not support DELTA
   value_type   = "INT64"
   unit         = "{tokens}"
   project      = var.project_id
@@ -126,7 +125,7 @@ resource "google_monitoring_alert_policy" "high_token_usage" {
 
       aggregations {
         alignment_period     = "3600s" # 1-hour window
-        per_series_aligner   = "ALIGN_SUM"
+        per_series_aligner   = "ALIGN_RATE"  # rate of change for CUMULATIVE metrics
         cross_series_reducer = "REDUCE_SUM"
       }
     }

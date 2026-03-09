@@ -17,6 +17,10 @@ project_id = "your-gcp-project-id"
 # GCP zone within the region — must match the region below
 zone = "us-central1-a"
 
+# GCP billing account ID — format: XXXXXX-XXXXXX-XXXXXX
+# Find it with: gcloud billing accounts list
+billing_account_id = "XXXXXX-XXXXXX-XXXXXX"
+
 # Email address for budget alerts and monitoring notifications
 notification_email = "devops@yourdomain.com"
 
