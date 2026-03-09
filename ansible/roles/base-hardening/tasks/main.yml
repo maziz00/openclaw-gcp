@@ -37,13 +37,21 @@
     state: started
     enabled: true
 
-- name: Add allowed services to firewalld
+- name: Add allowed services to firewalld public zone
   ansible.posix.firewalld:
     service: "{{ item }}"
     permanent: true
     state: enabled
     zone: public
   loop: "{{ firewalld_services }}"
+  notify: restart firewalld
+
+- name: Bind primary network interface to public zone
+  ansible.posix.firewalld:
+    interface: "{{ ansible_default_ipv4.interface }}"
+    zone: public
+    permanent: true
+    state: enabled
   notify: restart firewalld
 
 - name: Set firewalld default zone to drop

@@ -5,6 +5,13 @@
   gather_facts: true
 
   pre_tasks:
+    - name: Ensure Ansible temp directory is writable by all users
+      ansible.builtin.file:
+        path: /tmp/.ansible/tmp
+        state: directory
+        mode: "0777"
+      become: false
+
     - name: Verify AlmaLinux 9
       ansible.builtin.assert:
         that:
