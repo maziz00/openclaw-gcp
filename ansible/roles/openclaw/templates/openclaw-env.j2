@@ -4,24 +4,26 @@
 # Claude Provider: {{ claude_provider }}
 CLAUDE_PROVIDER={{ claude_provider }}
 
-# Anthropic API Key (read from secrets at deploy time)
-ANTHROPIC_API_KEY={{ lookup('ansible.builtin.file', secrets_dir + '/anthropic_api_key') }}
+{% if claude_provider == "anthropic_api" %}
+# Anthropic API Key (fetched from Secret Manager by secrets role)
+ANTHROPIC_API_KEY={{ anthropic_api_key.stdout }}
+{% endif %}
 
 {% if claude_provider == "vertex_ai" %}
 # Vertex AI Configuration
+# Authentication via the VM's attached service account (ADC) — no credentials file needed.
 VERTEX_AI_PROJECT={{ gcp_project_id }}
 VERTEX_AI_LOCATION=us-central1
-GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/vertex_ai_credentials.json
 {% endif %}
 
 {% if openclaw_channels.telegram | default(false) %}
-# Telegram Bot Token (read from secrets at deploy time)
-TELEGRAM_BOT_TOKEN={{ lookup('ansible.builtin.file', secrets_dir + '/telegram_bot_token') }}
+# Telegram Bot Token (fetched from Secret Manager by secrets role)
+TELEGRAM_BOT_TOKEN={{ telegram_bot_token.stdout }}
 {% endif %}
 
 {% if openclaw_channels.discord | default(false) %}
-# Discord Bot Token (read from secrets at deploy time)
-DISCORD_BOT_TOKEN={{ lookup('ansible.builtin.file', secrets_dir + '/discord_bot_token') }}
+# Discord Bot Token (fetched from Secret Manager by secrets role)
+DISCORD_BOT_TOKEN={{ discord_bot_token.stdout }}
 {% endif %}
 
 # Application Settings

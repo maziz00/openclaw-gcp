@@ -30,11 +30,9 @@
   notify: restart openclaw
 
 - name: Pull OpenClaw Docker image
-  community.docker.docker_image:
-    name: "{{ openclaw_image }}"
-    tag: "{{ openclaw_version }}"
-    source: pull
-    force_source: true
+  ansible.builtin.command:
+    cmd: docker pull "{{ openclaw_image }}:{{ openclaw_version }}"
+  changed_when: true
 
 - name: Start OpenClaw with Docker Compose
   ansible.builtin.command:
@@ -44,11 +42,10 @@
   changed_when: "'Started' in compose_up.stdout or 'Creating' in compose_up.stderr"
 
 - name: Wait for OpenClaw health check
-  ansible.builtin.uri:
-    url: "http://127.0.0.1:{{ openclaw_port }}/health"
-    method: GET
-    status_code: 200
+  ansible.builtin.command:
+    cmd: curl -sf http://127.0.0.1:{{ openclaw_port }}/health
   register: health_check
-  until: health_check.status == 200
+  until: health_check.rc == 0
   retries: 12
   delay: 10
+  changed_when: false

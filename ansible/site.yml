@@ -26,8 +26,8 @@
         update_cache: true
 
   roles:
-    - base-hardening
-    - docker
-    - secrets
-    - openclaw
-    - monitoring
+    - { role: base-hardening, tags: [base-hardening] }
+    - { role: docker,         tags: [docker] }
+    - { role: secrets,        tags: [secrets] }
+    - { role: openclaw,       tags: [openclaw] }
+    - { role: monitoring,     tags: [monitoring] }
