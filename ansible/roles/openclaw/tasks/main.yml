@@ -1,4 +1,25 @@
 ---
+- name: Read Telegram bot token from secrets file
+  ansible.builtin.slurp:
+    src: "{{ secrets_dir }}/telegram_bot_token"
+  register: _telegram_token
+  when: openclaw_channels.telegram | default(false)
+  no_log: true
+
+- name: Read Discord bot token from secrets file
+  ansible.builtin.slurp:
+    src: "{{ secrets_dir }}/discord_bot_token"
+  register: _discord_token
+  when: openclaw_channels.discord | default(false)
+  no_log: true
+
+- name: Read Anthropic API key from secrets file
+  ansible.builtin.slurp:
+    src: "{{ secrets_dir }}/anthropic_api_key"
+  register: _anthropic_key
+  when: claude_provider == "anthropic_api"
+  no_log: true
+
 - name: Create OpenClaw directories
   ansible.builtin.file:
     path: "{{ item }}"
@@ -41,11 +62,11 @@
   register: compose_up
   changed_when: "'Started' in compose_up.stdout or 'Creating' in compose_up.stderr"
 
-- name: Wait for OpenClaw health check
+- name: Wait for OpenClaw container to be running
   ansible.builtin.command:
-    cmd: curl -sf http://127.0.0.1:{{ openclaw_port }}/health
-  register: health_check
-  until: health_check.rc == 0
+    cmd: docker inspect -f '{{ "{{" }}.State.Running{{ "}}" }}' openclaw
+  register: container_status
+  until: container_status.stdout == "true"
   retries: 12
   delay: 10
   changed_when: false

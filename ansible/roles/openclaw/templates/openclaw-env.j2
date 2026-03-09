@@ -5,8 +5,8 @@
 CLAUDE_PROVIDER={{ claude_provider }}
 
 {% if claude_provider == "anthropic_api" %}
-# Anthropic API Key (fetched from Secret Manager by secrets role)
-ANTHROPIC_API_KEY={{ anthropic_api_key.stdout }}
+# Anthropic API Key
+ANTHROPIC_API_KEY={{ _anthropic_key.content | b64decode | trim }}
 {% endif %}
 
 {% if claude_provider == "vertex_ai" %}
@@ -17,13 +17,13 @@ VERTEX_AI_LOCATION=us-central1
 {% endif %}
 
 {% if openclaw_channels.telegram | default(false) %}
-# Telegram Bot Token (fetched from Secret Manager by secrets role)
-TELEGRAM_BOT_TOKEN={{ telegram_bot_token.stdout }}
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN={{ _telegram_token.content | b64decode | trim }}
 {% endif %}
 
 {% if openclaw_channels.discord | default(false) %}
-# Discord Bot Token (fetched from Secret Manager by secrets role)
-DISCORD_BOT_TOKEN={{ discord_bot_token.stdout }}
+# Discord Bot Token
+DISCORD_BOT_TOKEN={{ _discord_token.content | b64decode | trim }}
 {% endif %}
 
 # Application Settings
