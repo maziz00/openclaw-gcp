@@ -23,8 +23,13 @@ resource "google_monitoring_notification_channel" "email" {
 # The budget filters by this project's number so costs are isolated.
 # Requires the billing account ID to be known — we derive it from the project.
 # ---------------------------------------------------------------------------
+data "google_billing_account" "acct" {
+  display_name = "My Billing Account"
+  open         = true
+}
+
 resource "google_billing_budget" "openclaw" {
-  billing_account = var.billing_account_id
+  billing_account = data.google_billing_account.acct.id
 
   display_name = "OpenClaw ${var.environment} Monthly Budget"
 
@@ -103,6 +108,18 @@ resource "google_monitoring_metric_descriptor" "claude_api_tokens" {
 }
 
 # ---------------------------------------------------------------------------
+# Propagation wait — GCP custom metrics are eventually consistent.
+# The metric descriptor API returns 200 immediately, but the metric takes
+# 60-120 seconds to become queryable by the Alert Policy API.
+# Without this wait, Terraform fires the alert policy creation instantly
+# and gets a 404 ("metric not found").
+# ---------------------------------------------------------------------------
+resource "time_sleep" "wait_for_metric_propagation" {
+  depends_on      = [google_monitoring_metric_descriptor.claude_api_tokens]
+  create_duration = "90s"
+}
+
+# ---------------------------------------------------------------------------
 # Alert Policy — high Claude API token usage
 #
 # Fires when the rolling 1-hour sum of tokens exceeds 1,000,000.
@@ -113,6 +130,8 @@ resource "google_monitoring_alert_policy" "high_token_usage" {
   project      = var.project_id
   combiner     = "OR"
   enabled      = true
+
+  depends_on = [time_sleep.wait_for_metric_propagation]
 
   conditions {
     display_name = "Claude token usage > 1M tokens/hr"

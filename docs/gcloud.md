@@ -196,11 +196,60 @@ gcloud billing accounts list
 
 ---
 
+---
+
+## Error 5 — AlertPolicy 404: Metric Not Found (Eventual Consistency)
+
+### Symptoms
+
+```
+Error: Error creating AlertPolicy: googleapi: Error 404:
+Cannot find metric(s) that match type = "custom.googleapis.com/openclaw/claude_api_tokens_used".
+If a metric was created recently, it could take up to 10 minutes to become available.
+```
+
+### Root Cause
+
+GCP's custom metrics API is **eventually consistent**. When Terraform creates `google_monitoring_metric_descriptor`, the API returns HTTP 200 immediately, but the metric is not yet queryable by the Alert Policy API. GCP propagates the descriptor across its backend in 60-120 seconds.
+
+Terraform fires the `google_monitoring_alert_policy` creation immediately after, finds no metric, gets 404. A `depends_on` alone is not enough — Terraform waits for the resource to be *created*, not for GCP to *propagate* it.
+
+### Fix
+
+Add a `time_sleep` resource between the metric descriptor and the alert policy using the `hashicorp/time` provider.
+
+**`terraform/versions.tf`** — add the provider:
+```hcl
+time = {
+  source  = "hashicorp/time"
+  version = ">= 0.9"
+}
+```
+
+**`terraform/monitoring.tf`** — add the sleep and wire `depends_on`:
+```hcl
+resource "time_sleep" "wait_for_metric_propagation" {
+  depends_on      = [google_monitoring_metric_descriptor.claude_api_tokens]
+  create_duration = "90s"
+}
+
+resource "google_monitoring_alert_policy" "high_token_usage" {
+  depends_on = [time_sleep.wait_for_metric_propagation]
+  ...
+}
+```
+
+Run `terraform init` after adding the provider, then `terraform apply`.
+
+**This fix is already applied.**
+
+---
+
 ## Prevention
 
 | Issue | Prevention |
 |-------|-----------|
 | ADC quota project | Always set `user_project_override = true` in the provider when using ADC. Standard practice for any Terraform project that uses billing/budget APIs. |
 | DELTA metric kind | Custom metrics only support `GAUGE` or `CUMULATIVE`. Check the [metric kind docs](https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors#MetricKind) before choosing. |
-| Alert policy cascade | Always check if the metric descriptor was successfully created before adding alert policies that reference it. `terraform plan` won't catch this — it only appears at apply time. |
-| billing_account on google_project | The `google_project` data source does not return billing account. Always pass `billing_account_id` as an explicit variable. |
+| Alert policy 404 (eventual consistency) | Use `time_sleep` after `google_monitoring_metric_descriptor` — `depends_on` alone is not sufficient because GCP propagation happens after the API returns 200. |
+| billing_account on google_project | The `google_project` data source does not expose billing account. Use `google_billing_account` data source or an explicit variable. |
