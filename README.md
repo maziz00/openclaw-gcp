@@ -296,6 +296,11 @@ For setup details and dashboard configuration, see [docs/cost-monitoring.md](doc
 
 ---
 
+## OpenClaw Web UI
+![alt text](image.png)
+
+---
+
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
