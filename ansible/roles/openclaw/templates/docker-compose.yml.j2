@@ -6,12 +6,12 @@ services:
     image: {{ openclaw_image }}:{{ openclaw_version }}
     container_name: openclaw
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:{{ openclaw_port }}:3000"
+    network_mode: host
     env_file:
       - {{ openclaw_config_dir }}/openclaw.env
     volumes:
       - {{ openclaw_data_dir }}:/app/data
+      - {{ openclaw_data_dir }}/config:/home/node/.openclaw
     security_opt:
       - label:type:container_runtime_t
     healthcheck:

@@ -5,7 +5,7 @@ claude_provider: "vertex_ai"
 
 # OpenClaw Application
 openclaw_version: "latest"
-openclaw_port: 3000
+openclaw_port: 18789
 
 # GCP
 gcp_project_id: "claude-code-00"

@@ -1,19 +1,17 @@
 # OpenClaw Environment Configuration
 # Managed by Ansible - do not edit manually
 
-# Claude Provider: {{ claude_provider }}
-CLAUDE_PROVIDER={{ claude_provider }}
-
 {% if claude_provider == "anthropic_api" %}
 # Anthropic API Key
 ANTHROPIC_API_KEY={{ _anthropic_key.content | b64decode | trim }}
 {% endif %}
 
 {% if claude_provider == "vertex_ai" %}
-# Vertex AI Configuration
+# Vertex AI Configuration for Claude Code
 # Authentication via the VM's attached service account (ADC) — no credentials file needed.
-VERTEX_AI_PROJECT={{ gcp_project_id }}
-VERTEX_AI_LOCATION=us-central1
+CLAUDE_CODE_USE_VERTEX=1
+ANTHROPIC_VERTEX_PROJECT_ID={{ gcp_project_id }}
+ANTHROPIC_VERTEX_REGION=us-east5
 {% endif %}
 
 {% if openclaw_channels.telegram | default(false) %}
@@ -28,4 +26,3 @@ DISCORD_BOT_TOKEN={{ _discord_token.content | b64decode | trim }}
 
 # Application Settings
 NODE_ENV=production
-PORT=3000
