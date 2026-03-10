@@ -1,0 +1,13 @@
+{
+  "agents": {
+    "defaults": {
+      "model": {
+{% if claude_provider == "vertex_ai" %}
+        "primary": "google-vertex/claude-sonnet-4-6"
+{% else %}
+        "primary": "anthropic/claude-sonnet-4-6"
+{% endif %}
+      }
+    }
+  }
+}

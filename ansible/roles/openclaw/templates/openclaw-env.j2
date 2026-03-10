@@ -7,11 +7,9 @@ ANTHROPIC_API_KEY={{ _anthropic_key.content | b64decode | trim }}
 {% endif %}
 
 {% if claude_provider == "vertex_ai" %}
-# Vertex AI Configuration for Claude Code
-# Authentication via the VM's attached service account (ADC) — no credentials file needed.
-CLAUDE_CODE_USE_VERTEX=1
-ANTHROPIC_VERTEX_PROJECT_ID={{ gcp_project_id }}
-ANTHROPIC_VERTEX_REGION=us-east5
+# Vertex AI: OpenClaw uses google-vertex provider via ADC (no API key needed).
+# Provider is configured in openclaw.json, not via env vars.
+GOOGLE_CLOUD_PROJECT={{ gcp_project_id }}
 {% endif %}
 
 {% if openclaw_channels.telegram | default(false) %}
