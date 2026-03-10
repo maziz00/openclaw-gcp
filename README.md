@@ -297,7 +297,7 @@ For setup details and dashboard configuration, see [docs/cost-monitoring.md](doc
 ---
 
 ## OpenClaw Web UI
-![alt text](image.png)
+![alt text](image-1.png)
 
 ---
 
