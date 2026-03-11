@@ -1,7 +1,19 @@
 ---
+# ---------------------------------------------------------------------------
 # Claude / AI Provider Configuration
-# Options: "anthropic_api" or "vertex_ai"
+#
+# claude_provider: "anthropic_api"  → Direct Anthropic API (API key required)
+#                  "vertex_ai"      → GCP Vertex AI (uses VM service account ADC,
+#                                     no API key needed; requires quota approval)
+#
+# openclaw_model: Claude model to use. Same name for both providers.
+#   Options: claude-sonnet-4-6 | claude-opus-4-6 | claude-haiku-4-5
+#
+# vertex_ai_region: Vertex AI region. Claude models are only available in us-east5.
+# ---------------------------------------------------------------------------
 claude_provider: "vertex_ai"
+openclaw_model: "claude-sonnet-4-6"
+vertex_ai_region: "us-east5"
 
 # OpenClaw Application
 openclaw_version: "latest"

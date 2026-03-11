@@ -1,0 +1,14 @@
+{% if claude_provider == "anthropic_api" %}
+{
+  "anthropic": {
+    "apiKey": "{{ _anthropic_key.content | b64decode | trim }}"
+  }
+}
+{% elif claude_provider == "vertex_ai" %}
+{
+  "google-vertex": {
+    "projectId": "{{ gcp_project_id }}",
+    "region": "{{ vertex_ai_region }}"
+  }
+}
+{% endif %}

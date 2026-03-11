@@ -3,9 +3,9 @@
     "defaults": {
       "model": {
 {% if claude_provider == "vertex_ai" %}
-        "primary": "google-vertex/claude-sonnet-4-6"
+        "primary": "google-vertex/{{ openclaw_model }}"
 {% else %}
-        "primary": "anthropic/claude-sonnet-4-6"
+        "primary": "anthropic/{{ openclaw_model }}"
 {% endif %}
       }
     }

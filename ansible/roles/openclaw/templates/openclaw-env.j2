@@ -8,8 +8,9 @@ ANTHROPIC_API_KEY={{ _anthropic_key.content | b64decode | trim }}
 
 {% if claude_provider == "vertex_ai" %}
 # Vertex AI: OpenClaw uses google-vertex provider via ADC (no API key needed).
-# Provider is configured in openclaw.json, not via env vars.
+# Provider and model are configured in openclaw.json; region passed via env.
 GOOGLE_CLOUD_PROJECT={{ gcp_project_id }}
+GOOGLE_CLOUD_REGION={{ vertex_ai_region }}
 {% endif %}
 
 {% if openclaw_channels.telegram | default(false) %}
