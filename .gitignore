@@ -75,3 +75,5 @@ tfplan
 
 # Claude
 CLAUDE.md
+.claude/*
+.claude
