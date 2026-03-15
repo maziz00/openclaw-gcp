@@ -287,7 +287,7 @@ For setup details and dashboard configuration, see [docs/cost-monitoring.md](doc
 
 ---
 
-## Author
+## About Me
 
 **Mohamed AbdelAziz** -- Senior DevOps Architect
 12 years career tech journey, Servers, Kubernetes, GCP, AWS and AI Infrastructure
